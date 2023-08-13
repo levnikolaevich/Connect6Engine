@@ -14,6 +14,15 @@ class SearchEngine():
         self.m_total_nodes = 0
 
     def alpha_beta_search(self, depth, alpha, beta, ourColor, bestMove, preMove):
+    
+        #Check game result
+        if (is_win_by_premove(self.m_board, preMove)):
+            if (ourColor == self.m_chess_type):
+                #Opponent wins.
+                return 0;
+            else:
+                #Self wins.
+                return Defines.MININT + 1;
         
         alpha = 0
         if(self.check_first_move()):
@@ -28,6 +37,11 @@ class SearchEngine():
             bestMove.positions[1].x = move1[0]
             bestMove.positions[1].y = move1[1]
             make_move(self.m_board,bestMove,ourColor)
+            
+            '''#Check game result
+            if (is_win_by_premove(self.m_board, bestMove)):
+                #Self wins.
+                return Defines.MININT + 1;'''
             
             move2 = self.find_possible_move()
             bestMove.positions[1].x = move2[0]

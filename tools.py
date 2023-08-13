@@ -24,19 +24,25 @@ def is_win_by_premove(board, preMove):
     directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
 
     for direction in directions:
-        count = 0
-        for i in range(2):
-            n = i = preMove.positions[i].x
-            m = j = preMove.positions[i].y
-            while board[i][j] == board[n][m]:
-                i += direction[0]
-                j += direction[1]
+        for i in range(len(preMove.positions)):
+            count = 0
+            position = preMove.positions[i]
+            n = x = position.x
+            m = y = position.y
+            movStone = board[n][m]
+            
+            if (movStone == Defines.BORDER or movStone == Defines.NOSTONE):
+                return False;
+                
+            while board[x][y] == movStone:
+                x += direction[0]
+                y += direction[1]
                 count += 1
-            i = n - direction[0]
-            j = m - direction[1]
-            while board[i][j] == board[n][m]:
-                i -= direction[0]
-                j -= direction[1]
+            x = n - direction[0]
+            y = m - direction[1]
+            while board[x][y] == movStone:
+                x -= direction[0]
+                y -= direction[1]
                 count += 1
             if count >= 6:
                 return True
@@ -47,7 +53,7 @@ def get_msg(max_len):
     return buf[:max_len]
 
 def log_to_file(msg):
-    g_log_file_name = "engine.log"
+    g_log_file_name = Defines.LOG_FILE
     try:
         with open(g_log_file_name, "a") as file:
             tm = time.time()

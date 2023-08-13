@@ -5,7 +5,7 @@ from search_engine import SearchEngine
 import time
 
 class GameEngine:
-    def __init__(self, name="TIA.Connect6"):
+    def __init__(self, name=Defines.ENGINE_NAME):
         if name and len(name) > 0:
             if len(name) < Defines.MSG_LENGTH:
                 self.m_engine_name = name
