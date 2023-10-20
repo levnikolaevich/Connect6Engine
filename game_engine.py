@@ -1,4 +1,4 @@
-from defines import *
+import cProfile
 from tools import *
 import sys
 from search_engine import SearchEngine
@@ -6,16 +6,17 @@ import time
 
 class GameEngine:
     def __init__(self, name=Defines.ENGINE_NAME):
+        self.m_chess_type = None
         if name and len(name) > 0:
             if len(name) < Defines.MSG_LENGTH:
                 self.m_engine_name = name
             else:
                 print(f"Too long Engine Name: {name}, should be less than: {Defines.MSG_LENGTH}")
-        self.m_alphabeta_depth = 6
-        self.m_board = t = [ [0]*Defines.GRID_NUM for i in range(Defines.GRID_NUM)]
-        self.init_game()
+        self.m_alphabeta_depth = 2
+        self.m_board = t = [[0]*Defines.GRID_NUM for i in range(Defines.GRID_NUM)]
         self.m_search_engine = SearchEngine()
-        self.m_best_move = StoneMove()
+        self.init_game()
+        self.m_best_move = StoneMove([StonePosition(0, 0), StonePosition(0, 0)])
 
     def init_game(self):
         init_board(self.m_board)
@@ -33,9 +34,6 @@ class GameEngine:
             "              and the engine will search the move for the next step.\n"
             " new black   - start a new game and set the engine to black player.\n"
             " new white   - start a new game and set it to white.\n"
-            " depth d     - set the alpha beta search depth, default is 6.\n"
-            " vcf         - set vcf search.\n"
-            " unvcf       - set none vcf search.\n"
             " help        - print this help.\n")
 
     def run(self):
@@ -50,10 +48,6 @@ class GameEngine:
                 break
             elif msg == "print":
                 print_board(self.m_board, self.m_best_move)
-            elif msg == "vcf":
-                self.m_vcf = True
-            elif msg == "unvcf":
-                self.m_vcf = False
             elif msg.startswith("black"):
                 self.m_best_move = msg2move(msg[6:])
                 make_move(self.m_board, self.m_best_move, Defines.BLACK)
@@ -66,7 +60,8 @@ class GameEngine:
                 self.m_chess_type = self.m_chess_type ^ 3
                 if self.search_a_move(self.m_chess_type, self.m_best_move):
                     make_move(self.m_board, self.m_best_move, self.m_chess_type)
-                    msg = f"move {move2msg(self.m_best_move)}"
+                    msg = f"move {self.m_best_move}"
+                    print_board(self.m_board)
                     print(msg)
                     flush_output()
             elif msg.startswith("new"):
@@ -76,6 +71,7 @@ class GameEngine:
                     make_move(self.m_board, self.m_best_move, Defines.BLACK)
                     self.m_chess_type = Defines.BLACK
                     msg = "move JJ"
+                    print_board(self.m_board)
                     print(msg)
                     flush_output()
                 else:
@@ -86,15 +82,13 @@ class GameEngine:
                 if is_win_by_premove(self.m_board, self.m_best_move):
                     print("We lost!")
                 if self.search_a_move(self.m_chess_type, self.m_best_move):
-                    msg = f"move {move2msg(self.m_best_move)}"
+                    msg = f"move {self.m_best_move}"
                     make_move(self.m_board, self.m_best_move, self.m_chess_type)
+                    print_board(self.m_board)
                     print(msg)
                     flush_output()
             elif msg.startswith("depth"):
-                d = int(msg[6:])
-                if 0 < d < 10:
-                    self.m_alphabeta_depth = d
-                print(f"Set the search depth to {self.m_alphabeta_depth}.\n")
+                self.m_alphabeta_depth = self.m_alphabeta_depth
             elif msg == "help":
                 self.on_help()
         return 0
@@ -106,12 +100,20 @@ class GameEngine:
 
         start = time.perf_counter()
         self.m_search_engine.before_search(self.m_board, self.m_chess_type, self.m_alphabeta_depth)
+        # Profile of alpha_beta_search
+        #cProfile.runctx(
+        #    "score = self.m_search_engine.alpha_beta_search(self.m_alphabeta_depth, Defines.MININT, Defines.MAXINT, "
+        #    "ourColor, bestMove, bestMove)",
+        #   globals(), locals())
         score = self.m_search_engine.alpha_beta_search(self.m_alphabeta_depth, Defines.MININT, Defines.MAXINT, ourColor, bestMove, bestMove)
         end = time.perf_counter()
 
+        print(f"==================================")
         print(f"AB Time:\t{end - start:.3f}")
         print(f"Node:\t{self.m_search_engine.m_total_nodes}\n")
-        print(f"Score:\t{score:.3f}")
+        print(f"Beta pod:\t{self.m_search_engine.m_beta_pod}\n")
+        print(f"Score:\t{self.m_best_move.score:.3f}")
+        print(f"BestMove:\t{bestMove}")
         return True
 
 def flush_output():
