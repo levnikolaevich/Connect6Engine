@@ -67,15 +67,14 @@ class GameEngine:
             elif msg.startswith("new"):
                 self.init_game()
                 if msg[4:] == "black":
+                    self.m_best_move = msg2move("JJ")
+                    make_move(self.m_board, self.m_best_move, Defines.BLACK)
                     self.m_chess_type = Defines.BLACK
+                    msg = "move JJ"
+                    print(msg)
+                    flush_output()
                 else:
                     self.m_chess_type = Defines.WHITE
-                self.m_best_move = msg2move("JJ")
-                make_move(self.m_board, self.m_best_move, self.m_chess_type)
-                msg = "move JJ"
-                print_board(self.m_board)
-                print(msg)
-                flush_output()
             elif msg.startswith("move"):
                 self.m_best_move = msg2move(msg[5:])
                 make_move(self.m_board, self.m_best_move, self.m_chess_type ^ 3)
@@ -101,11 +100,11 @@ class GameEngine:
         start = time.perf_counter()
         self.m_search_engine.before_search(self.m_board, self.m_chess_type, self.m_alphabeta_depth)
         # Profile of alpha_beta_search
-        #cProfile.runctx(
-        #    "score = self.m_search_engine.alpha_beta_search(self.m_alphabeta_depth, Defines.MININT, Defines.MAXINT, "
-        #    "ourColor, bestMove, bestMove)",
-        #   globals(), locals())
-        score = self.m_search_engine.alpha_beta_search(self.m_alphabeta_depth, Defines.MININT, Defines.MAXINT, ourColor, bestMove, bestMove)
+        cProfile.runctx(
+            "score = self.m_search_engine.alpha_beta_search(self.m_alphabeta_depth, Defines.MININT, Defines.MAXINT, "
+            "ourColor, bestMove, bestMove)",
+           globals(), locals())
+        #score = self.m_search_engine.alpha_beta_search(self.m_alphabeta_depth, Defines.MININT, Defines.MAXINT, ourColor, bestMove, bestMove)
         end = time.perf_counter()
 
         print(f"==================================")

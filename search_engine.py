@@ -85,7 +85,8 @@ class SearchEngine:
                 if depth > 1:
                     # Adjust score based on the minimax search for the next level
                     score_second -= self.alpha_beta_search(depth - 1, -beta, -alpha, 3 - ourColor, bestMove, tempMove)
-
+                    # else:
+                    #  print_board(self.m_board)
                 total_score = score_first + score_second
                 # Revert the move after evaluation
                 unmake_move(self.m_board, tempMove)
@@ -127,7 +128,7 @@ class SearchEngine:
         possible_positions = set()
 
         # Set a fixed radius around the stones of the last move
-        radius = 3
+        radius = 2
 
         # Iterate through cells around each stone of the last move
         for pos in lastMove.positions:
@@ -151,51 +152,52 @@ class SearchEngine:
         return list(possible_positions)
 
     def evaluate_position(self, ourColor, position):
-        # Evaluate the board position
         WIN_SCORE = float('inf')
-        BLOCK_SCORE = 1000  # High score for blocking the opponent's winning line
-        THREAT_MULTIPLIER = 20  # Weight for our own lines
+        LOSE_SCORE = float('-inf')
+        LINE_MULTIPLIER = [0, 1, 10, 50, 200, 500]  # Scores for different line lengths
         CENTER_BONUS = 10
+        BLOCK_THREAT_MULTIPLIER = 1000  # Increased weight for blocking opponent's line
 
         def count_in_direction(x, y, dx, dy, color):
-            # Count stones in a specific direction
-            count = 0
+            # Count stones in a specific direction and open ends
+            count, open_ends = 0, 0
             while isValidPos(x, y) and self.m_board[x][y] == color:
                 count += 1
                 x += dx
                 y += dy
-            return count
-
-        def evaluate_direction(x, y, color, own_color):
-            # Evaluate threats and winning positions around a given position
-            for dx, dy in [(1, 0), (0, 1), (1, 1), (-1, 1), (1, -1), (-1, -1), (-1, 0), (0, -1)]:
-                count = count_in_direction(x + dx, y + dy, dx, dy, color) + count_in_direction(x - dx, y - dy, -dx, -dy,
-                                                                                               color) + 1
-                if color == own_color and count >= 6:
-                    return WIN_SCORE  # Win by our move
-                elif color != own_color and count >= 5:
-                    return BLOCK_SCORE  # Block opponent's winning line
-            return 0
+            if isValidPos(x, y) and self.m_board[x][y] == Defines.NOSTONE:
+                open_ends += 1
+            return count, open_ends
 
         x, y = position.x, position.y
-        our_win_score = evaluate_direction(x, y, ourColor, ourColor)
-        if our_win_score == WIN_SCORE:
-            return WIN_SCORE
-
         enemy_color = 3 - ourColor
-        block_score = evaluate_direction(x, y, enemy_color, ourColor)
-        if block_score == BLOCK_SCORE:
-            return BLOCK_SCORE
 
-        # Evaluate the length of our own lines
         total_score = 0
         for dx, dy in [(1, 0), (0, 1), (1, 1), (-1, 1), (1, -1), (-1, -1), (-1, 0), (0, -1)]:
-            count = count_in_direction(x + dx, y + dy, dx, dy, ourColor) + count_in_direction(x - dx, y - dy, -dx, -dy,
-                                                                                              ourColor) + 1
-            if 2 <= count < 6:
-                total_score += THREAT_MULTIPLIER ** count
+            our_count, our_open_ends = count_in_direction(x + dx, y + dy, dx, dy, ourColor)
+            our_count_reverse, our_open_ends_reverse = count_in_direction(x - dx, y - dy, -dx, -dy, ourColor)
+            our_total_count = our_count + our_count_reverse
+            our_total_open_ends = our_open_ends + our_open_ends_reverse
 
-        # Calculate reward for proximity to the center
+            enemy_count, enemy_open_ends = count_in_direction(x + dx, y + dy, dx, dy, enemy_color)
+            enemy_count_reverse, enemy_open_ends_reverse = count_in_direction(x - dx, y - dy, -dx, -dy, enemy_color)
+            enemy_total_count = enemy_count + enemy_count_reverse
+            enemy_total_open_ends = enemy_open_ends + enemy_open_ends_reverse
+
+            if our_total_count >= 6:
+                return WIN_SCORE  # Winning condition
+            if enemy_total_count >= 6:
+                return LOSE_SCORE  # Losing condition
+
+            # Scoring our lines
+            if our_total_open_ends > 0:  # Only score if there are open ends
+                total_score += LINE_MULTIPLIER[our_total_count] * our_total_open_ends
+
+            # Scoring for blocking opponent's lines
+            if enemy_total_count >= 5 and enemy_total_open_ends > 0:  # Blocking strong enemy lines
+                total_score += BLOCK_THREAT_MULTIPLIER
+
+        # Bonus for being closer to the center of the board
         center_x, center_y = 9, 9
         distance_to_center = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
         center_bonus = CENTER_BONUS / (1 + distance_to_center)
