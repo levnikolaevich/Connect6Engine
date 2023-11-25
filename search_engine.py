@@ -18,6 +18,7 @@ class SearchEngine:
         self.m_alphabeta_depth = alphabeta_depth  # Set the search depth
         self.m_total_nodes = 0  # Reset the total nodes explored
         self.m_beta_pod = 0  # Reset beta cutoffs
+        self.transposition_table = {}
 
     def hash_board(self):
         """ Generate a unique hash for the current board position. """
@@ -47,10 +48,6 @@ class SearchEngine:
         if is_win_by_premove(self.m_board, preMove):
             return Defines.MAXINT
 
-        # If reached the desired depth, evaluate the position
-        if depth == 0:
-            return self.evaluate_position(ourColor, preMove)
-
         # Generate possible moves for the first stone
         move_possibilities = self.generate_moves(bestMove)
 
@@ -59,38 +56,57 @@ class SearchEngine:
         best_position_second = None
 
         # Search for the best move for the first stone
+        # evaluated_moves = set()  # Set to store evaluated positions of the first stone
         for position_first in move_possibilities:
+            # Create a temporary move with the first stone
             tempMove = StoneMove([position_first, position_first])
             make_move(self.m_board, tempMove, ourColor)
+            # Evaluate the board position after placing the first stone
             score_first = self.evaluate_position(ourColor, position_first)
 
             # Search for the best move for the second stone
             for position_second in move_possibilities:
                 if position_second == position_first:
-                    continue
+                    continue  # Skip if it's the same as the first position
+
+                # Add the second stone and evaluate the board position
                 tempMove = StoneMove([position_first, position_second])
+
+                # SIN TABLA + SIN evaluated_moves AB Time:	29.850
+                # if tempMove in evaluated_moves:
+                # continue
+
+                # evaluated_moves.add(tempMove)
+
                 make_move(self.m_board, tempMove, ourColor)
                 score_second = self.evaluate_position(ourColor, position_second)
 
                 # Recursive call for the next depth level
                 if depth > 1:
+                    # Adjust score based on the minimax search for the next level
                     score_second -= self.alpha_beta_search(depth - 1, -beta, -alpha, 3 - ourColor, bestMove, tempMove)
 
                 total_score = score_first + score_second
+                # Revert the move after evaluation
                 unmake_move(self.m_board, tempMove)
 
+                # Update the best score and best positions if the current score is higher
                 if total_score > best_score:
                     best_score = total_score
                     best_position_first = position_first
                     best_position_second = position_second
 
+                # Update alpha value for alpha-beta pruning
                 if best_score > alpha:
                     alpha = best_score
 
+                # Alpha-beta cutoff
+                if alpha >= beta:
+                    self.m_beta_pod += 1
+                    break
+
+            # Revert the initial move with only the first stone
             unmake_move(self.m_board, StoneMove([position_first, position_first]))
-            if alpha >= beta:
-                self.m_beta_pod += 1
-                break  # Alpha-beta cutoff
 
         # Save the best move
         if best_position_first and best_position_second:
@@ -100,6 +116,8 @@ class SearchEngine:
         bestMove.score = best_score
 
         # Save the result in the transposition table
+        # SIN AB Time: 12.014 Node: 2257
+        # CON AB Time: 5.914 Node: 2257
         self.transposition_table[board_hash] = {'score': best_score, 'depth': depth}
 
         return best_score
