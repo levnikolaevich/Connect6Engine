@@ -72,12 +72,6 @@ class SearchEngine:
                 # Add the second stone and evaluate the board position
                 tempMove = StoneMove([position_first, position_second])
 
-                # SIN TABLA + SIN evaluated_moves AB Time:	29.850
-                # if tempMove in evaluated_moves:
-                # continue
-
-                # evaluated_moves.add(tempMove)
-
                 make_move(self.m_board, tempMove, ourColor)
                 score_second = self.evaluate_position(ourColor, position_second)
 
@@ -142,7 +136,7 @@ class SearchEngine:
         enemy_color = 3 - self.m_chess_type
         for i in range(len(self.m_board)):
             for j in range(len(self.m_board[i])):
-                if self.m_board[i][j] == enemy_color:
+                if self.m_board[i][j] in (enemy_color, self.m_chess_type):
                     for dx in range(-1, 2):  # Radius of 1
                         for dy in range(-1, 2):
                             new_x, new_y = i + dx, j + dy
@@ -156,7 +150,7 @@ class SearchEngine:
         LOSE_SCORE = float('-inf')
         LINE_MULTIPLIER = [0, 1, 10, 50, 200, 500]  # Scores for different line lengths
         CENTER_BONUS = 10
-        BLOCK_THREAT_MULTIPLIER = 1000  # Increased weight for blocking opponent's line
+        BLOCK_THREAT_MULTIPLIER = 500  # Increased weight for blocking opponent's line
 
         def count_in_direction(x, y, dx, dy, color):
             # Count stones in a specific direction and open ends
@@ -194,8 +188,10 @@ class SearchEngine:
                 total_score += LINE_MULTIPLIER[our_total_count] * our_total_open_ends
 
             # Scoring for blocking opponent's lines
-            if enemy_total_count >= 5 and enemy_total_open_ends > 0:  # Blocking strong enemy lines
+            if enemy_total_count >= 4 and enemy_total_open_ends > 0:  # Blocking strong enemy lines
                 total_score += BLOCK_THREAT_MULTIPLIER
+                if enemy_total_count >= 5:
+                    total_score += BLOCK_THREAT_MULTIPLIER
 
         # Bonus for being closer to the center of the board
         center_x, center_y = 9, 9
